@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Travel Bingo</string>
+    <string name="randomize_game_card">Randomize Bingo Card</string>
+</resources>

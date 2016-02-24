@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <array name="default_tileset">
+        <item>@drawable/ambulance_temp</item>
+        <item>@drawable/bicycle_temp</item>
+        <item>@drawable/billboard_temp</item>
+        <item>@drawable/bird_temp</item>
+        <item>@drawable/black_car_temp</item>
+        <item>@drawable/blue_car_temp</item>
+        <item>@drawable/bridge_temp</item>
+        <item>@drawable/eighteen_wheeler_temp</item>
+        <item>@drawable/fire_engine_temp</item>
+        <item>@drawable/gas_station_temp</item>
+        <item>@drawable/green_car_temp</item>
+        <item>@drawable/motorcycle_temp</item>
+        <item>@drawable/free_space_temp</item>
+        <item>@drawable/police_car_temp</item>
+        <item>@drawable/power_lines_temp</item>
+        <item>@drawable/red_car_temp</item>
+        <item>@drawable/road_cone_temp</item>
+        <item>@drawable/runner_temp</item>
+        <item>@drawable/stop_sign_temp</item>
+        <item>@drawable/tall_buildings_temp</item>
+        <item>@drawable/traffic_light_temp</item>
+        <item>@drawable/tree_temp</item>
+        <item>@drawable/worker_temp</item>
+        <item>@drawable/yellow_car_temp</item>
+        <item>@drawable/yield_sign_temp</item>
+    </array>
+</resources>
