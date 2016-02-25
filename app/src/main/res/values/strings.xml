@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">Travel Bingo</string>
     <string name="randomize_game_card">Randomize Bingo Card</string>
+    <string name="randomize_dialog_title">Alert!</string>
+    <string name="randomize_dialog_message">Randomizing the game card will erase it.
+        Continue?</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
 </resources>
