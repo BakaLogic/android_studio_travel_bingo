@@ -3,7 +3,10 @@ package com.psripinyo.travelbingo;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.FeatureInfo;
+import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -105,6 +108,20 @@ public class TravelBingo extends AppCompatActivity {
         myToolbar.setTitle(R.string.app_name);
 
         tileImagesIds.recycle();
+
+        boolean isWiFiDirectSupported = isWifiDirectSupported(this);
+    }
+
+    private boolean isWifiDirectSupported(Context ctx) {
+        PackageManager pm = ctx.getPackageManager();
+        FeatureInfo[] features = pm.getSystemAvailableFeatures();
+        for (FeatureInfo info : features) {
+            if (info != null && info.name != null &&
+                    info.name.equalsIgnoreCase("android.hardware.wifi.direct")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // this name is misleading.  We're looking for ResourceIDs from the TypedArray.
