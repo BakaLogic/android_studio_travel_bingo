@@ -1,31 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- add the name of the tileset when adding new tilesets-->
+    <string-array name="available_tilesets">
+        <item>Default Tileset</item>
+        <item>Travel Bingo Kids</item>
+        <item>Rural and Farm</item>
+    </string-array>
+
+    <integer-array name="tileset_list">
+        <item>@array/default_tileset</item>
+        <item>@array/travel_bingo_kids</item>
+        <item>@array/rural_and_farm</item>
+    </integer-array>
+
+    <!-- Tilesets should have an odd square root, i.e. 25/5, 9/3, 49/7 -->
+    <!-- free space should be middle tile -->
+    <!-- TODO: possibly enforce a 49 tile maximum? -->
+    <!-- TODO: Enforce free space in app? -->
     <array name="default_tileset">
-        <item>@drawable/ambulance_temp</item>
-        <item>@drawable/bicycle_temp</item>
-        <item>@drawable/billboard_temp</item>
-        <item>@drawable/bird_temp</item>
-        <item>@drawable/black_car_temp</item>
-        <item>@drawable/blue_car_temp</item>
-        <item>@drawable/bridge_temp</item>
-        <item>@drawable/eighteen_wheeler_temp</item>
-        <item>@drawable/fire_engine_temp</item>
-        <item>@drawable/gas_station_temp</item>
-        <item>@drawable/green_car_temp</item>
-        <item>@drawable/motorcycle_temp</item>
-        <item>@drawable/free_space_temp</item>
-        <item>@drawable/police_car_temp</item>
-        <item>@drawable/power_lines_temp</item>
-        <item>@drawable/red_car_temp</item>
-        <item>@drawable/road_cone_temp</item>
-        <item>@drawable/runner_temp</item>
-        <item>@drawable/stop_sign_temp</item>
-        <item>@drawable/tall_buildings_temp</item>
-        <item>@drawable/traffic_light_temp</item>
-        <item>@drawable/tree_temp</item>
-        <item>@drawable/worker_temp</item>
-        <item>@drawable/yellow_car_temp</item>
-        <item>@drawable/yield_sign_temp</item>
+        <item>@drawable/default_ambulance</item>
+        <item>@drawable/default_bicycle</item>
+        <item>@drawable/default_billboard</item>
+        <item>@drawable/default_bird</item>
+        <item>@drawable/default_black_car</item>
+        <item>@drawable/default_blue_car</item>
+        <item>@drawable/default_bridge</item>
+        <item>@drawable/default_eighteen_wheeler</item>
+        <item>@drawable/default_fire_engine</item>
+        <item>@drawable/default_gas_station</item>
+        <item>@drawable/default_green_car</item>
+        <item>@drawable/default_motorcycle</item>
+        <item>@drawable/default_free_space</item>
+        <item>@drawable/default_police_car</item>
+        <item>@drawable/default_power_lines</item>
+        <item>@drawable/default_red_car</item>
+        <item>@drawable/default_road_cone</item>
+        <item>@drawable/default_runner</item>
+        <item>@drawable/default_stop_sign</item>
+        <item>@drawable/default_tall_buildings</item>
+        <item>@drawable/default_traffic_light</item>
+        <item>@drawable/default_tree</item>
+        <item>@drawable/default_worker</item>
+        <item>@drawable/default_yellow_car</item>
+        <item>@drawable/default_yield_sign</item>
     </array>
+
+    <array name="travel_bingo_kids">
+        <item>@drawable/tbk_arrow</item>
+        <item>@drawable/tbk_baseball_field</item>
+        <item>@drawable/tbk_bird</item>
+        <item>@drawable/tbk_blue_car</item>
+        <item>@drawable/tbk_blue_house</item>
+        <item>@drawable/tbk_boat</item>
+        <item>@drawable/tbk_dog</item>
+        <item>@drawable/tbk_fire_truck</item>
+        <item>@drawable/tbk_flag</item>
+        <item>@drawable/tbk_golf_course</item>
+        <item>@drawable/tbk_letter_q</item>
+        <item>@drawable/tbk_number_four</item>
+        <item>@drawable/tbk_free_space</item>
+        <item>@drawable/tbk_orange_flower</item>
+        <item>@drawable/tbk_pine_tree</item>
+        <item>@drawable/tbk_pond</item>
+        <item>@drawable/tbk_railroad_tracks</item>
+        <item>@drawable/tbk_speed_limit_sign</item>
+        <item>@drawable/tbk_stop_sign</item>
+        <item>@drawable/tbk_swingset</item>
+        <item>@drawable/tbk_tent</item>
+        <item>@drawable/tbk_traffic_cone</item>
+        <item>@drawable/tbk_traffic_light</item>
+        <item>@drawable/tbk_water_tower</item>
+        <item>@drawable/tbk_yellow_car</item>
+    </array>
+
+    <array name="rural_and_farm">
+        <item>@drawable/raf_barn</item>
+        <item>@drawable/raf_billboard</item>
+        <item>@drawable/raf_boat</item>
+        <item>@drawable/raf_bridge</item>
+        <item>@drawable/raf_bus</item>
+        <item>@drawable/raf_cemetary</item>
+        <item>@drawable/raf_church</item>
+        <item>@drawable/raf_cow</item>
+        <item>@drawable/raf_gas_station</item>
+        <item>@drawable/raf_horse</item>
+        <item>@drawable/raf_motel</item>
+        <item>@drawable/raf_motorcycle</item>
+        <item>@drawable/raf_free_space</item>
+        <item>@drawable/raf_police_car</item>
+        <item>@drawable/raf_radio_tower</item>
+        <item>@drawable/raf_rest_area</item>
+        <item>@drawable/raf_restaurant</item>
+        <item>@drawable/raf_school</item>
+        <item>@drawable/raf_silo</item>
+        <item>@drawable/raf_speed_limit_sign</item>
+        <item>@drawable/raf_tractor</item>
+        <item>@drawable/raf_tractor_trailer</item>
+        <item>@drawable/raf_train_crossing</item>
+        <item>@drawable/raf_us_mailbox</item>
+        <item>@drawable/raf_water_tower</item>
+    </array>
+
 </resources>
