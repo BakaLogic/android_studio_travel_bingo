@@ -3,7 +3,10 @@ package com.psripinyo.travelbingo;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.FeatureInfo;
+import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -49,23 +52,31 @@ public class TravelBingo extends AppCompatActivity {
     //  Array that holds the information of whether a tile has been marked or not.
     private int[] markedTiles;
 
+    // This holds the resource ID of the current tileset that we are using.
+    private int currentTileSet;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_travel_bingo);
 
-        //we expand this to get the array of resource Ids from resources.
-        TypedArray tileImagesIds = getResources().obtainTypedArray(R.array.default_tileset);
-        // we convert it to an Int Array to pass it to the gcAdapter.
-        int[] intValImageResIds = getIntArrayFromTypedArray(tileImagesIds);
+        // This is an array containing the Resource IDs of all available tilesets.
+        // we need to load the array to get at the resId for the default tile set.
+        TypedArray availableTileSets = getResources().obtainTypedArray(R.array.tileset_list);
 
-        // create the Int array of resource Ids that we'll use to transfer info to the gcAdapter.
+        // Because this is the start of the app we'll just load the default tile set.
+        currentTileSet = availableTileSets.getResourceId(0, -1);
+
+        // create the Int array of resource Ids that we'll use to transfer info to the gcAdapter
+        int[] intValImageResIds = getTileSetResIdArrayfromArrayResourceID(currentTileSet);
+
+        // This array holds info on whether or not a tile is check marked.
         if(markedTiles == null)
-            markedTiles = new int[tileImagesIds.length()];
+            markedTiles = new int[intValImageResIds.length];
 
         // assuming odd number of rows/columns with a center free space.
-        markedTiles[tileImagesIds.length() / 2] = 1;
+        markedTiles[intValImageResIds.length / 2] = 1;
 
         // set up the gridView gameboard.
         GridView gameCard = (GridView) findViewById(R.id.bingoCard);
@@ -104,7 +115,21 @@ public class TravelBingo extends AppCompatActivity {
         setSupportActionBar(myToolbar);
         myToolbar.setTitle(R.string.app_name);
 
-        tileImagesIds.recycle();
+        availableTileSets.recycle();
+
+        boolean isWiFiDirectSupported = isWifiDirectSupported(this);
+    }
+
+    private boolean isWifiDirectSupported(Context ctx) {
+        PackageManager pm = ctx.getPackageManager();
+        FeatureInfo[] features = pm.getSystemAvailableFeatures();
+        for (FeatureInfo info : features) {
+            if (info != null && info.name != null &&
+                    info.name.equalsIgnoreCase("android.hardware.wifi.direct")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // this name is misleading.  We're looking for ResourceIDs from the TypedArray.
@@ -118,6 +143,17 @@ public class TravelBingo extends AppCompatActivity {
         return intArray;
     }
 
+    // Take a tile set resource ID and return an array of resource ids of the tiles in the set.
+    private int[] getTileSetResIdArrayfromArrayResourceID(int currentTileSet)
+    {
+        //we expand this to get the array of resource Ids from resources.
+        TypedArray tileImagesIds = getResources().obtainTypedArray(currentTileSet);
+        // we convert it to an Int Array to pass it to the gcAdapter.
+        int[] returnArray = getIntArrayFromTypedArray(tileImagesIds);
+        tileImagesIds.recycle();
+        return returnArray;
+    }
+
     // We plan on removing checkmarks when the gameboard is recreated because it's
     // not fair to allow someone to start with new checked tiles.  We want to warn
     // the user before we do it so we pop a dialog with a warning that progress will be reset.
@@ -125,9 +161,10 @@ public class TravelBingo extends AppCompatActivity {
     // TODO: diable this when playing the game.
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        AlertDialog.Builder builder;
         switch (item.getItemId()) {
             case R.id.randomize_gamecard:
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder = new AlertDialog.Builder(this);
                 builder.setMessage(R.string.randomize_dialog_message);
                 builder.setTitle(R.string.randomize_dialog_title);
                 builder.setPositiveButton(getResources().getText(R.string.ok),
@@ -145,6 +182,25 @@ public class TravelBingo extends AppCompatActivity {
                         });
                 AlertDialog rGCDialog = builder.create();
                 rGCDialog.show();
+                return true;
+
+            case R.id.select_tileset:
+                builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.select_tileset_title);
+                builder.setItems(R.array.available_tilesets,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                //TODO Decide on if we change tiles if current set is selected
+                                //TODO Currently, we do.
+                                TypedArray availableTileSets =
+                                        getResources().obtainTypedArray(R.array.tileset_list);
+                                currentTileSet = availableTileSets.getResourceId(which, -1);
+                                randomizeGameCard();
+                                availableTileSets.recycle();
+                            }
+                        });
+                AlertDialog stsDialog = builder.create();
+                stsDialog.show();
                 return true;
 
             default:
@@ -199,8 +255,7 @@ public class TravelBingo extends AppCompatActivity {
     // TODO: support for multiple tilesets.
     public void randomizeGameCard() {
 
-        TypedArray gameTiles = getResources().obtainTypedArray(R.array.default_tileset);
-        int[] gameTilesResIds = getIntArrayFromTypedArray(gameTiles);
+        int[] gameTilesResIds = getTileSetResIdArrayfromArrayResourceID(currentTileSet);
 
         randomizeTiles(gameTilesResIds);
 
@@ -211,8 +266,6 @@ public class TravelBingo extends AppCompatActivity {
         gcAdapter.resetTileImages(gameTilesResIds);
         // TODO: This wouldn't be necessary if the view knew it's position and asked the activity
         resetCheckMarks(gameCard);
-
-        gameTiles.recycle();
     }
 
     // I like big butts and I cannot lie.  You other brothers can't deny...
