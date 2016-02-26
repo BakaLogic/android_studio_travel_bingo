@@ -1,12 +1,12 @@
 package com.psripinyo.travelbingo;
 
-import android.content.res.TypedArray;
-import android.widget.BaseAdapter;
 import android.content.Context;
-import android.widget.ImageView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.GridLayout;
 import android.widget.GridView;
+import android.widget.ImageView;
 
 /**
  * Created by psripinyo on 2/23/2016.
@@ -69,7 +69,9 @@ public class GameCardAdapter extends BaseAdapter {
             // if it's not recycled, initialize some attributes
             //TODO: Remove hard coding at some point.
             imageView = new TravelBingoImageView(mContext);
-            imageView.setLayoutParams(new GridView.LayoutParams(100, 100));
+            imageView.setAdjustViewBounds(true);
+            imageView.setLayoutParams(new GridView.LayoutParams(GridLayout.LayoutParams.WRAP_CONTENT,
+                    GridLayout.LayoutParams.WRAP_CONTENT));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(8, 8, 8, 8);
         } else {
