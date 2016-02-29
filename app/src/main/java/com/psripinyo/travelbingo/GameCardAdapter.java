@@ -1,6 +1,8 @@
 package com.psripinyo.travelbingo;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -70,6 +72,10 @@ public class GameCardAdapter extends BaseAdapter {
             //TODO: Remove hard coding at some point.
             imageView = new TravelBingoImageView(mContext);
             imageView.setAdjustViewBounds(true);
+            imageView.setBackgroundColor(Color.WHITE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                imageView.setElevation(10);
+            }
             imageView.setLayoutParams(new GridView.LayoutParams(GridLayout.LayoutParams.WRAP_CONTENT,
                     GridLayout.LayoutParams.WRAP_CONTENT));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);

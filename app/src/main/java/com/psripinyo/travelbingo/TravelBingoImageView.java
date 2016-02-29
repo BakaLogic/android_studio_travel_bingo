@@ -1,11 +1,12 @@
 package com.psripinyo.travelbingo;
 
-import android.graphics.Canvas;
-import android.graphics.Bitmap;
-import android.graphics.Matrix;
-import android.widget.ImageView;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.widget.ImageView;
 
 /**
  * Created by psripinyo on 2/23/2016.
@@ -54,7 +55,9 @@ public class TravelBingoImageView extends ImageView{
         {
             //TODO: Center the Check Mark on the bitmap
             Matrix matrix = getImageMatrix();
-            canvas.drawBitmap(checkMarkBitmap, matrix, null);
+            Paint paint = new Paint();
+            paint.setAlpha(160);
+            canvas.drawBitmap(checkMarkBitmap, matrix, paint);
             invalidate();
         }
     }

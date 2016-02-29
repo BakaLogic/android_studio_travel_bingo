@@ -1,33 +1,24 @@
 package com.psripinyo.travelbingo;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.AlertDialog.Builder;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.pm.FeatureInfo;
-import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.os.Handler;
-import android.view.MotionEvent;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.GridView;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.GridView;
 import android.widget.Toast;
-import android.util.Log;
-import android.support.v7.widget.Toolbar;
-import java.nio.InvalidMarkException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import android.view.Menu;
-import android.view.MenuItem;
 
 /* 2/23/2016
  * GridView code from
@@ -186,7 +177,7 @@ public class TravelBingo extends AppCompatActivity {
 
         tbWifiManager = new TravelBingoWifiManager(this);
 
-        isWiFiDirectSupported = tbWifiManager.isWifiDirectSupported(this);
+        isWiFiDirectSupported = tbWifiManager.isWifiDirectSupported();
     }
 
 
