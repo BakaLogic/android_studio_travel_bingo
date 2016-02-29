@@ -186,7 +186,7 @@ public class TravelBingo extends AppCompatActivity {
 
         tbWifiManager = new TravelBingoWifiManager(this);
 
-        isWiFiDirectSupported = tbWifiManager.isWifiDirectSupported(this);
+        isWiFiDirectSupported = tbWifiManager.isWifiDirectSupported();
     }
 
 
