@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.pm.FeatureInfo;
 import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -21,6 +22,8 @@ import android.widget.Toast;
 import android.util.Log;
 import android.support.v7.widget.Toolbar;
 import java.nio.InvalidMarkException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import android.view.Menu;
@@ -40,6 +43,49 @@ import android.view.MenuItem;
  */
 public class TravelBingo extends AppCompatActivity {
 
+
+    // inner class for holding peer device information
+    class PeerNameAndAdd {
+
+        private String myPeerName;
+        private String myPeerID;
+
+        PeerNameAndAdd(String peerName, String peerID) {
+            myPeerID = peerID;
+            myPeerName = peerName;
+        }
+
+        PeerNameAndAdd() {
+            myPeerID = null;
+            myPeerName = null;
+        }
+
+        void setMyPeerID(String peerID) {
+            myPeerID = peerID;
+        }
+
+        public void setMyPeerName(String peerName) {
+            myPeerName = peerName;
+        }
+
+        public String getMyPeerID() {
+            return myPeerID;
+        }
+
+        public String getMyPeerName() {
+            return myPeerName;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if(!(obj instanceof PeerNameAndAdd)) {
+                return false;
+            }
+            return(((PeerNameAndAdd) obj).getMyPeerID().equals(myPeerID) &&
+                    ((PeerNameAndAdd) obj).getMyPeerName().equals(myPeerName));
+        }
+    }
+
     /* psripinyo
      */
     // BLANK - the ImageView has no tile art selected.
@@ -55,11 +101,32 @@ public class TravelBingo extends AppCompatActivity {
     // This holds the resource ID of the current tileset that we are using.
     private int currentTileSet;
 
+    // boolean which stores whether or not the device is WiFi Direct capable
+    private boolean isWiFiDirectSupported;
+
+    // This is a wifi Manager for our Travel Bingo Activity.
+    private TravelBingoWifiManager tbWifiManager;
+
+    // This holds our selected items from the Peer Selection menu.
+    private List<Integer> mSelectedItems;
+
+    // a boolean list of which items have already been checked.
+    boolean[] menuItemIsMarked;
+
+    // listOfPeers - a list of peers that we got when we opened the selection menu
+    private List<PeerNameAndAdd> menuItemPeers;
+
+    // List of peers in our group
+    private List<PeerNameAndAdd> peersInGroup;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_travel_bingo);
+
+        //set up the list of Peers in Group for use.
+        //peersInGroup;
 
         // This is an array containing the Resource IDs of all available tilesets.
         // we need to load the array to get at the resId for the default tile set.
@@ -117,20 +184,12 @@ public class TravelBingo extends AppCompatActivity {
 
         availableTileSets.recycle();
 
-        boolean isWiFiDirectSupported = isWifiDirectSupported(this);
+        tbWifiManager = new TravelBingoWifiManager(this);
+
+        isWiFiDirectSupported = tbWifiManager.isWifiDirectSupported(this);
     }
 
-    private boolean isWifiDirectSupported(Context ctx) {
-        PackageManager pm = ctx.getPackageManager();
-        FeatureInfo[] features = pm.getSystemAvailableFeatures();
-        for (FeatureInfo info : features) {
-            if (info != null && info.name != null &&
-                    info.name.equalsIgnoreCase("android.hardware.wifi.direct")) {
-                return true;
-            }
-        }
-        return false;
-    }
+
 
     // this name is misleading.  We're looking for ResourceIDs from the TypedArray.
     // TODO: Rename this to something more specific when I'm not lazy.
@@ -203,12 +262,120 @@ public class TravelBingo extends AppCompatActivity {
                 stsDialog.show();
                 return true;
 
+            case R.id.wifi_direct_menu_item:
+                if(!isWiFiDirectSupported)
+                {
+                    builder = new AlertDialog.Builder(this);
+                    builder.setMessage(R.string.wifi_direct_nogo);
+                    builder.setTitle(R.string.wifi_direct_title);
+                    builder.setPositiveButton(getResources().getText(R.string.ok),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog noWiFiDirectDialog = builder.create();
+                    noWiFiDirectDialog.show();
+                    return true;
+                }
+                else {
+                    List peerDevices = tbWifiManager.getPeers();
+                    if(peerDevices == null) {
+                        // TODO For some reason we don't have any peers.  We need to do
+                        // TODO an asynchronous search for peers.  Alert user and search for peers.
+                    }
+                    else {
+                        menuItemPeers = new ArrayList<PeerNameAndAdd>();
+                        for(int counter = 0; counter < peerDevices.size(); counter++)
+                        {
+                            TravelBingo.PeerNameAndAdd currentPeerInfo = new PeerNameAndAdd();
+                            currentPeerInfo.setMyPeerID(
+                                    ((WifiP2pDevice)(peerDevices.get(counter))).deviceAddress);
+                            currentPeerInfo.setMyPeerName(
+                                    ((WifiP2pDevice)(peerDevices.get(counter))).deviceName);
+                            menuItemPeers.add(currentPeerInfo);
+                        }
+                        showPeerSelectionDialog(menuItemPeers);
+                        return true;
+                    }
+                    return true;
+                }
+
+                // fallthrough to default
+
             default:
                 // If we got here, the user's action was not recognized.
                 // Invoke the superclass to handle it.
                 return super.onOptionsItemSelected(item);
 
         }
+    }
+
+    private void setPeersInGroup() {
+
+        peersInGroup = new ArrayList<PeerNameAndAdd>();
+
+        int numSelectedItems = mSelectedItems.size();
+
+        for(int counter = 0; counter < numSelectedItems; counter++) {
+            peersInGroup.add(menuItemPeers.get((int)mSelectedItems.get(counter)));
+        }
+    }
+
+    // This function is called to create an alert dialog to allow the user to choose peers
+    // to include in the WiFi Direct group
+    private void showPeerSelectionDialog(List menuItems) {
+        mSelectedItems = new ArrayList<Integer>();  // Where we track the selected items, GC old one.
+        AlertDialog.Builder builder;
+        int numPeers = menuItems.size();
+        String[] peerNames = new String[numPeers];
+        String peerName;
+        menuItemIsMarked = new boolean[numPeers]; // let GC collect the old list.
+
+        for(int counter = 0; counter < numPeers; counter++) {
+            //peerName.copy(((WifiP2pDevice) peerDevices[counter]).deviceName);
+            peerNames[counter] = ((PeerNameAndAdd) menuItems.get(counter)).getMyPeerName();
+
+            //if the peer device is in peers in group set the check to true.
+            if(peersInGroup != null && peersInGroup.contains(menuItems.get(counter))) {
+                menuItemIsMarked[counter] = true;
+                mSelectedItems.add(counter);
+            }
+        }
+        builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.wifi_direct_peer_choose)
+                .setMultiChoiceItems(peerNames, menuItemIsMarked,
+                        new DialogInterface.OnMultiChoiceClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which,
+                                                boolean isChecked) {
+                                if (isChecked) {
+                                    // If the user checked the item, add it to the selected items
+                                    mSelectedItems.add(which);
+                                } else if (mSelectedItems.contains(which)) {
+                                    // Else, if the item is already in the array, remove it
+                                    mSelectedItems.remove(Integer.valueOf(which));
+                                }
+                            }
+                        })
+                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User clicked OK, so save the mSelectedItems results somewhere
+                        // or return them to the component that opened the dialog
+                        ((AlertDialog) dialog).getListView().setItemChecked(0, true);
+                        setPeersInGroup();
+                    }
+                })
+                .setNegativeButton(getResources().getText(R.string.cancel),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        AlertDialog peerListDialog = builder.create();
+        peerListDialog.show();
     }
 
     //Fisher-Yates shuffle array function taken from
@@ -375,5 +542,21 @@ public class TravelBingo extends AppCompatActivity {
         }
 
         return hasWon;
+    }
+
+    /* register the broadcast receiver with the intent values to be matched */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(tbWifiManager.getMyReceiver()!= null && tbWifiManager.getMyIntentFilter() != null )
+            registerReceiver(tbWifiManager.getMyReceiver(), tbWifiManager.getMyIntentFilter());
+    }
+
+    /* unregister the broadcast receiver */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(tbWifiManager.getMyReceiver()!= null)
+            unregisterReceiver(tbWifiManager.getMyReceiver());
     }
 }
