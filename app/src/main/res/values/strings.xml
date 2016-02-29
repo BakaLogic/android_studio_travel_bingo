@@ -1,16 +1,37 @@
 <resources>
     <string name="app_name">Travel Bingo</string>
+
     <string name="randomize_game_card">Randomize Bingo Card</string>
     <string name="select_new_tileset">Use a Different Tileset</string>
-    <string name="wifi_direct_connect">Start a WiFi Direct Group</string>
+    <string name="wifi_direct_connect">Start or Change Your Group</string>
+    <string name="send_gc_to_peer">Send Game Card to a Player</string>
+
     <string name="randomize_dialog_title">Alert!</string>
-    <string name="select_tileset_title">Select a new tileset</string>
     <string name="randomize_dialog_message">Randomizing the game card will erase it.
         Continue?</string>
+
+    <string name="select_tileset_title">Select a new tileset</string>
+
     <string name="wifi_direct_title">Connect with WiFi Direct</string>
     <string name="wifi_direct_nogo">Connecting via wifi requires WiFi Direct which is not
         available on your phone.</string>
+    <string name="wifi_direct_not_host_text">You are not the host of your group.
+        Only the current host may modify the group.</string>
     <string name="wifi_direct_peer_choose">Choose Devices To Add</string>
+
+    <string name="send_gc_no_peers_title">No Players Detected</string>
+    <string name="send_gc_no_peers_text">You are not connected to any other players.
+        Please start a group to send game cards.</string>
+    <string name="choose_player_to_send_gc">Choose Player to Send Game Card</string>
+
+    <string name="send_gc_not_host_text">You are not the host of your current group.
+        Only the host of a group may send game cards.</string>
+
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="marked">marked</string>
+    <string name="unmarked">unmarked</string>
+    <string name="please_wait">Please Wait</string>
+    <string name="updating_gc">Please wait while your game card is updated.</string>
+    <string name="not_host_of_current_group">Not Host of Current Group</string>
 </resources>

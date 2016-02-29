@@ -10,6 +10,7 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,7 +35,6 @@ public class TravelBingoWifiManager {
 
     private enum PacketType { requestGameBoard, // Host requests a game board from player
                               gameBoardUpdate,  // This packet contains a game board
-                              markedTileUpdate, // this packet contains a marked tile update
                               requestCompleteUpdate, // request a full update
                               completeUpdate, // a complete update of game board and marked tiles
                               tileMarkNotification, // Client is updating host about a marked tile
@@ -42,6 +42,13 @@ public class TravelBingoWifiManager {
                               forceTileToggle, // host forces a player to toggle a game tile
                               connectionAck // client to server ack for determining IPAddress.
                             };
+
+    private final byte TILEPRESSUPDATEPACKET = 0x01; // this packet contains a tile press update
+    private final byte GCBYTILESETANDSEEDPACKET = 0x02; // packet contains gamecard tilset and seed
+
+    // packet sizes by byte
+    private final int TILEPRESSUPDATEPACKETSIZE = 9;
+    private final int GCBYTILESETANDSEEDPACKETSIZE = 9;
 
     public TravelBingoWifiManager(TravelBingo activity) {
         mManager = (WifiP2pManager) activity.getSystemService(Context.WIFI_P2P_SERVICE);
@@ -170,5 +177,72 @@ public class TravelBingoWifiManager {
             return null;
         else
             return peers;
+    }
+
+    // This function is called by the TravelBingo activity to notify the host that a tile was
+    // pressed by someone in the group.  It may be used to update a view of the other player's
+    // gamecard when we have multiple views for the host.
+    public void notifyHostOfTilePress(int position, int marked) {
+        //TODO set up creation of a packet to send to the host which contains the
+        //TODO position and marked information.  Use a separate thread to send it.
+        byte[] notifyTilePressPacket = new byte[TILEPRESSUPDATEPACKETSIZE];
+
+        notifyTilePressPacket[0] = TILEPRESSUPDATEPACKET;
+
+        ByteBuffer tilePressPacket = ByteBuffer.wrap(notifyTilePressPacket);
+
+        //TODO: Get IP of person we are sending packet to, host in this case.
+
+        tilePressPacket.putInt(1, position);
+        tilePressPacket.putInt(5, marked);
+
+        // TODO send it to the packet send function.  But it doesn't exist now.
+        notifyTilePressPacket = tilePressPacket.array();
+        //debug... send this back to our TravelBingo activity to notify of presses.
+        //parsePacketInfo(notifyTilePressPacket);
+    }
+
+    // This is used by the host to send a game card to a player.  Note that it uses resource ids
+    // for tilesets and thus means that the host and players MUST use the same version of the app
+    // for this to work.
+    public void sendGameCard(String macAddOfWho, int tileSet, int seed) {
+        //TODO all kinds of checks to make sure the person exists.
+        //TODO An eventual check to see if versions match.
+        byte[] sendGCPacket = new byte [GCBYTILESETANDSEEDPACKETSIZE];
+
+        sendGCPacket[0] = GCBYTILESETANDSEEDPACKET;
+
+        ByteBuffer gcSendBBuffer = ByteBuffer.wrap(sendGCPacket);
+        gcSendBBuffer.putInt(1, tileSet);
+        gcSendBBuffer.putInt(5, seed);
+
+        //TODO Send it to the packet send function but it doesn't exist now.
+        sendGCPacket = gcSendBBuffer.array();
+
+        //debug send this back to our TravelBingo activity to update gamecard.
+        //parsePacketInfo(sendGCPacket);
+    }
+
+    // Parse the packet we received from our WiFi Direct connection and take the appropriate
+    // action.
+    private void parsePacketInfo(byte[] packetInfo) {
+            ByteBuffer packetInfoBuffer = ByteBuffer.wrap(packetInfo);
+        switch(packetInfo[0]) {
+            case TILEPRESSUPDATEPACKET:
+                int position = packetInfoBuffer.getInt(1);
+                int marked = packetInfoBuffer.getInt(5);
+                mActivity.notifyTilePress(position, marked);
+                break;
+            case GCBYTILESETANDSEEDPACKET:
+                int tileSet = packetInfoBuffer.getInt(1);
+                int seed = packetInfoBuffer.getInt(5);
+                mActivity.updateGameCard(tileSet, seed);
+
+            default:
+                Log.d(TAG, "Unrecognized packet type(" + packetInfo[0] +
+                        "), discarding packet information.");
+                break;
+
+        }
     }
 }

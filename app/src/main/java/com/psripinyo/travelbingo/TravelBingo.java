@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -19,6 +20,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Calendar;
 
 /* 2/23/2016
  * GridView code from
@@ -90,6 +92,9 @@ public class TravelBingo extends AppCompatActivity {
     private int[] markedTiles;
 
     // This holds the resource ID of the current tileset that we are using.
+    // NOTE: We possibly pass this back and forth between versions of the app and so
+    // everyone must have the latest version of the app for some things like sharing Game Cards
+    // to work.
     private int currentTileSet;
 
     // boolean which stores whether or not the device is WiFi Direct capable
@@ -101,6 +106,9 @@ public class TravelBingo extends AppCompatActivity {
     // This holds our selected items from the Peer Selection menu.
     private List<Integer> mSelectedItems;
 
+    // this holds our selected item from the send GC menu.
+    int whichMenuItem;
+
     // a boolean list of which items have already been checked.
     boolean[] menuItemIsMarked;
 
@@ -109,6 +117,12 @@ public class TravelBingo extends AppCompatActivity {
 
     // List of peers in our group
     private List<PeerNameAndAdd> peersInGroup;
+
+    // This is the host.  If we have a host then we are part of the group but didn't start it.
+    private PeerNameAndAdd host;
+
+    //This is the random seed for creating a game card.
+    private int gcSeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,6 +142,11 @@ public class TravelBingo extends AppCompatActivity {
 
         // create the Int array of resource Ids that we'll use to transfer info to the gcAdapter
         int[] intValImageResIds = getTileSetResIdArrayfromArrayResourceID(currentTileSet);
+
+        Calendar newCalendar = Calendar.getInstance();
+        gcSeed = newCalendar.get(Calendar.SECOND);
+        // randomize tiles with this seed so we can give the game card tile to someone if need be.
+        randomizeTiles(intValImageResIds, gcSeed);
 
         // This array holds info on whether or not a tile is check marked.
         if(markedTiles == null)
@@ -161,6 +180,9 @@ public class TravelBingo extends AppCompatActivity {
                         tbImageView.setIsMarkedOnGameBoard(markBoard);
                         markedTiles[position] = (!markBoard) ? 0 : 1;
                         v.invalidate();
+                        if (host != null) {
+                            tbWifiManager.notifyHostOfTilePress(position, markedTiles[position]);
+                        }
                         if (checkForVictoryCondition(position)) {
                             doVictoryCelebration();
                         }
@@ -178,6 +200,16 @@ public class TravelBingo extends AppCompatActivity {
         tbWifiManager = new TravelBingoWifiManager(this);
 
         isWiFiDirectSupported = tbWifiManager.isWifiDirectSupported();
+
+        host = null;
+
+        //debug
+        //host = new PeerNameAndAdd("Knuckles Malone","Knuckles' Mac Address");
+
+        // I believe because we're not an owner app the user is asked to enter pinned mode
+        // that being the case do we still want to include this?
+        //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        //    startLockTask();
     }
 
 
@@ -269,6 +301,22 @@ public class TravelBingo extends AppCompatActivity {
                     noWiFiDirectDialog.show();
                     return true;
                 }
+                // we are in a group hosted by someone else
+                else if(host != null) {
+                    builder = new AlertDialog.Builder(this);
+                    builder.setMessage(R.string.wifi_direct_not_host_text);
+                    builder.setTitle(R.string.not_host_of_current_group);
+                    builder.setPositiveButton(getResources().getText(R.string.ok),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog noWiFiDirectDialog = builder.create();
+                    noWiFiDirectDialog.show();
+                    return true;
+
+                }
                 else {
                     List peerDevices = tbWifiManager.getPeers();
                     if(peerDevices == null) {
@@ -292,7 +340,39 @@ public class TravelBingo extends AppCompatActivity {
                     return true;
                 }
 
-                // fallthrough to default
+            case R.id.send_gc_to_player:
+                if(host != null) {
+                    builder = new AlertDialog.Builder(this);
+                    builder.setMessage(R.string.send_gc_not_host_text);
+                    builder.setTitle(R.string.not_host_of_current_group);
+                    builder.setPositiveButton(getResources().getText(R.string.ok),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog noPeersDialog = builder.create();
+                    noPeersDialog.show();
+                    return true;
+                }
+                else if(peersInGroup == null || peersInGroup.size() == 0) {
+                    builder = new AlertDialog.Builder(this);
+                    builder.setMessage(R.string.send_gc_no_peers_text);
+                    builder.setTitle(R.string.send_gc_no_peers_title);
+                    builder.setPositiveButton(getResources().getText(R.string.ok),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
+                    AlertDialog noPeersDialog = builder.create();
+                    noPeersDialog.show();
+                    return true;
+                }
+                else {
+                    showSendGCSelectDialog();
+                    return true;
+                }
 
             default:
                 // If we got here, the user's action was not recognized.
@@ -311,6 +391,52 @@ public class TravelBingo extends AppCompatActivity {
         for(int counter = 0; counter < numSelectedItems; counter++) {
             peersInGroup.add(menuItemPeers.get((int)mSelectedItems.get(counter)));
         }
+    }
+
+    private void showSendGCSelectDialog() {
+        int numPeers = peersInGroup.size();
+        AlertDialog.Builder builder;
+        String[] peerNames = new String[numPeers];
+        boolean[] checked_item = new boolean[numPeers];
+
+        for(int counter = 0; counter < numPeers; counter++) {
+            peerNames[counter] = ((PeerNameAndAdd) peersInGroup.get(counter)).getMyPeerName();
+        }
+
+        whichMenuItem = 0;
+
+        builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.choose_player_to_send_gc)
+                .setSingleChoiceItems(peerNames, 0, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                whichMenuItem = which;
+                            }
+                        })
+                .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialog,int id){
+                                // User clicked OK, so save the mSelectedItems results somewhere
+                                // or return them to the component that opened the dialog
+                                sendGCToPlayer(whichMenuItem);
+                            }
+                })
+                .setNegativeButton(getResources().getText(R.string.cancel),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        AlertDialog peerListDialog = builder.create();
+        peerListDialog.show();
+    }
+
+    // This may not be thread safe.
+    private void sendGCToPlayer(int whichMenuItem) {
+        PeerNameAndAdd peerToSend = peersInGroup.get(whichMenuItem);
+        String peerAddress = peerToSend.getMyPeerID();
+        tbWifiManager.sendGameCard(peerAddress, currentTileSet, gcSeed);
     }
 
     // This function is called to create an alert dialog to allow the user to choose peers
@@ -372,9 +498,9 @@ public class TravelBingo extends AppCompatActivity {
     //Fisher-Yates shuffle array function taken from
     // http://stackoverflow.com/questions/1519736/random-shuffling-of-an-array
     // modified to be less random because of free space.  Yeah, that again.
-    private void randomizeTiles(int[] gameTilesResIds) {
+    private void randomizeTiles(int[] gameTilesResIds, int seed) {
         int index, temp;
-        Random random = new Random();
+        Random random = new Random(seed);
         for (int i = gameTilesResIds.length - 1; i > 0; i--)
         {
             if(i == gameTilesResIds.length / 2)
@@ -406,16 +532,12 @@ public class TravelBingo extends AppCompatActivity {
         }
     }
 
-    // We get the default tile set (The only one in current use) and put the ResIds into
-    // an int array.  We call the randomize function to randomize the location of each tile
-    // and then we feed the new tileSet locations in an int array to the Game Card Adapter.
-    // We then reset the check marks on the game card for all tiles except the Free Space.
-    // TODO: support for multiple tilesets.
-    public void randomizeGameCard() {
+    public void randomizeGameCard(int seed) {
 
         int[] gameTilesResIds = getTileSetResIdArrayfromArrayResourceID(currentTileSet);
+        gcSeed = seed;
 
-        randomizeTiles(gameTilesResIds);
+        randomizeTiles(gameTilesResIds, gcSeed);
 
         GridView gameCard = (GridView) findViewById(R.id.bingoCard);
         gameCard.requestFocus();
@@ -424,6 +546,18 @@ public class TravelBingo extends AppCompatActivity {
         gcAdapter.resetTileImages(gameTilesResIds);
         // TODO: This wouldn't be necessary if the view knew it's position and asked the activity
         resetCheckMarks(gameCard);
+    }
+
+    // We get the default tile set (The only one in current use) and put the ResIds into
+    // an int array.  We call the randomize function to randomize the location of each tile
+    // and then we feed the new tileSet locations in an int array to the Game Card Adapter.
+    // We then reset the check marks on the game card for all tiles except the Free Space.
+    // TODO: support for multiple tilesets.
+    public void randomizeGameCard() {
+        Calendar newCalendar = Calendar.getInstance();
+        gcSeed = newCalendar.get(Calendar.SECOND);
+
+        randomizeGameCard(gcSeed);
     }
 
     // I like big butts and I cannot lie.  You other brothers can't deny...
@@ -549,5 +683,37 @@ public class TravelBingo extends AppCompatActivity {
         super.onPause();
         if(tbWifiManager.getMyReceiver()!= null)
             unregisterReceiver(tbWifiManager.getMyReceiver());
+    }
+
+    // TODO - When Net code is implemented, need name of player who pressed tile as well.
+    // this is used by the wifi manager to inform the host that one of the kids pressed a button.
+    public void notifyTilePress(int position, int which) {
+        Log.d(TAG, "tile press notification");
+        Toast.makeText(TravelBingo.this, "Player pressed tile at " + position + " and set to " +
+                        ((which == 0) ? "unmarked." : "marked."),
+                Toast.LENGTH_SHORT).show();
+    }
+
+    //TODO -- Thread safe.
+    // update the game card with what the host has sent us.
+    public void updateGameCard(int tileSet, int seed) {
+        currentTileSet = tileSet;
+        gcSeed = seed;
+        TypedArray availableTileSets = getResources().obtainTypedArray(R.array.tileset_list);
+
+        if(availableTileSets.getResourceId(0, -1) == -1)
+            Log.d(TAG, "Error, resource ID for the tileset in updateGameCard is not recognized.");
+        else {
+            AlertDialog.Builder builder;
+            builder = new AlertDialog.Builder(this);
+            builder.setMessage(R.string.updating_gc);
+            builder.setTitle(R.string.please_wait);
+
+            AlertDialog newGCDialog = builder.create();
+            newGCDialog.show();
+            randomizeGameCard(seed);
+            newGCDialog.dismiss();
+        }
+
     }
 }
