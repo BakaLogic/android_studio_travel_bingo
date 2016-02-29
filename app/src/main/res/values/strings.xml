@@ -2,10 +2,15 @@
     <string name="app_name">Travel Bingo</string>
     <string name="randomize_game_card">Randomize Bingo Card</string>
     <string name="select_new_tileset">Use a Different Tileset</string>
+    <string name="wifi_direct_connect">Start a WiFi Direct Group</string>
     <string name="randomize_dialog_title">Alert!</string>
     <string name="select_tileset_title">Select a new tileset</string>
     <string name="randomize_dialog_message">Randomizing the game card will erase it.
         Continue?</string>
+    <string name="wifi_direct_title">Connect with WiFi Direct</string>
+    <string name="wifi_direct_nogo">Connecting via wifi requires WiFi Direct which is not
+        available on your phone.</string>
+    <string name="wifi_direct_peer_choose">Choose Devices To Add</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
 </resources>
