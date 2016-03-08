@@ -4,7 +4,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -18,9 +17,10 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
-import java.util.Calendar;
+import java.util.concurrent.locks.ReentrantLock;
 
 /* 2/23/2016
  * GridView code from
@@ -42,15 +42,18 @@ public class TravelBingo extends AppCompatActivity {
 
         private String myPeerName;
         private String myPeerID;
+        private int myConnectionInfo; // 0, not connected, 1 attempting to connect, 2 connected.
 
         PeerNameAndAdd(String peerName, String peerID) {
             myPeerID = peerID;
             myPeerName = peerName;
+            myConnectionInfo = 0;
         }
 
         PeerNameAndAdd() {
             myPeerID = null;
             myPeerName = null;
+            myConnectionInfo = 0;
         }
 
         void setMyPeerID(String peerID) {
@@ -61,6 +64,8 @@ public class TravelBingo extends AppCompatActivity {
             myPeerName = peerName;
         }
 
+        public void setMyConnectionInfo(int connectionType) {myConnectionInfo = connectionType;}
+
         public String getMyPeerID() {
             return myPeerID;
         }
@@ -68,6 +73,8 @@ public class TravelBingo extends AppCompatActivity {
         public String getMyPeerName() {
             return myPeerName;
         }
+
+        public int getMyConnectionInfo() { return myConnectionInfo; }
 
         @Override
         public boolean equals(Object obj) {
@@ -124,11 +131,18 @@ public class TravelBingo extends AppCompatActivity {
     //This is the random seed for creating a game card.
     private int gcSeed;
 
+    // This lock protects variables used by the main activity and the thread parsing incoming
+    // packets for information.
+    private ReentrantLock incomingInfoLock;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_travel_bingo);
+
+        incomingInfoLock = new ReentrantLock();
 
         //set up the list of Peers in Group for use.
         //peersInGroup;
@@ -318,6 +332,7 @@ public class TravelBingo extends AppCompatActivity {
 
                 }
                 else {
+                    tbWifiManager.lookForPeers(); // Note, this is an async call.
                     List peerDevices = tbWifiManager.getPeers();
                     if(peerDevices == null) {
                         // TODO For some reason we don't have any peers.  We need to do
@@ -389,7 +404,19 @@ public class TravelBingo extends AppCompatActivity {
         int numSelectedItems = mSelectedItems.size();
 
         for(int counter = 0; counter < numSelectedItems; counter++) {
-            peersInGroup.add(menuItemPeers.get((int)mSelectedItems.get(counter)));
+            peersInGroup.add(menuItemPeers.get((int) mSelectedItems.get(counter)));
+            if(tbWifiManager.connectToPeer(
+                    ((PeerNameAndAdd)menuItemPeers.get((int)mSelectedItems.get(counter))).
+                            getMyPeerID()) < 0)
+            {
+                Log.d(TAG, "Error connecting to " +
+                        ((PeerNameAndAdd)menuItemPeers.get((int)mSelectedItems.get(counter))).
+                        getMyPeerName());
+            }
+            else {
+                ((PeerNameAndAdd)menuItemPeers.get((int)mSelectedItems.get(counter))).
+                        setMyConnectionInfo(1); //TODO Remove magic number.
+            }
         }
     }
 
@@ -562,6 +589,7 @@ public class TravelBingo extends AppCompatActivity {
 
     // I like big butts and I cannot lie.  You other brothers can't deny...
     // inflate the menu on creation.
+    // TODO Restrict options when the game is in 'kid mode'
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_activity_menu, menu);
@@ -673,23 +701,41 @@ public class TravelBingo extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if(tbWifiManager.getMyReceiver()!= null && tbWifiManager.getMyIntentFilter() != null )
-            registerReceiver(tbWifiManager.getMyReceiver(), tbWifiManager.getMyIntentFilter());
+        if(tbWifiManager != null) {
+            if (tbWifiManager != null) {
+                tbWifiManager.lookForPeers();
+
+                if (tbWifiManager.getMyReceiver() != null &&
+                        tbWifiManager.getMyIntentFilter() != null)
+                    registerReceiver(tbWifiManager.getMyReceiver(),
+                            tbWifiManager.getMyIntentFilter());
+
+            }
+        }
     }
 
     /* unregister the broadcast receiver */
     @Override
     protected void onPause() {
         super.onPause();
-        if(tbWifiManager.getMyReceiver()!= null)
+        if(tbWifiManager.getMyReceiver()!= null) {
             unregisterReceiver(tbWifiManager.getMyReceiver());
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(tbWifiManager != null) {
+            tbWifiManager.killTasks();
+        }
     }
 
     // TODO - When Net code is implemented, need name of player who pressed tile as well.
     // this is used by the wifi manager to inform the host that one of the kids pressed a button.
-    public void notifyTilePress(int position, int which) {
+    public void notifyTilePress(int position, int which, String sender) {
         Log.d(TAG, "tile press notification");
-        Toast.makeText(TravelBingo.this, "Player pressed tile at " + position + " and set to " +
+        Toast.makeText(TravelBingo.this, sender + " pressed tile at " + position + " and set to " +
                         ((which == 0) ? "unmarked." : "marked."),
                 Toast.LENGTH_SHORT).show();
     }
@@ -715,5 +761,22 @@ public class TravelBingo extends AppCompatActivity {
             newGCDialog.dismiss();
         }
 
+    }
+
+    public void setHost(String hostName, String hostAddress) {
+        incomingInfoLock.lock();
+        try {
+            if(host != null)
+                Log.d(TAG, "ERROR: Host is not null and has been replaced in main activiy.");
+            host = new PeerNameAndAdd();
+            host.setMyPeerName(hostName);
+            // TODO This is currently incorrect.  We're adding a InetAddress and this is supposed
+            // TODO to be mac
+            host.setMyPeerID(hostAddress);
+            host.setMyConnectionInfo(2);
+        }
+        finally {
+            incomingInfoLock.unlock();
+        }
     }
 }
