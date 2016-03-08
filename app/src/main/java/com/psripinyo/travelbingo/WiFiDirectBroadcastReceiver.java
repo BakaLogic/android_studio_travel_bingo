@@ -7,6 +7,7 @@ package com.psripinyo.travelbingo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
@@ -19,17 +20,20 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     private WifiP2pManager.Channel mChannel;
     private TravelBingo mActivity;
     private WifiP2pManager.PeerListListener mPeerListListener;
+    private WifiP2pManager.ConnectionInfoListener mConnectionInfoListener;
     private static final String TAG = "WifiDirectBrdcstRcvr";
 
     public WiFiDirectBroadcastReceiver(WifiP2pManager manager, WifiP2pManager.Channel channel,
                                        TravelBingo activity,
-                                       WifiP2pManager.PeerListListener peerListListener) {
+                                       WifiP2pManager.PeerListListener peerListListener,
+                                       WifiP2pManager.ConnectionInfoListener connectionInfoListener)
+    {
         super();
         this.mManager = manager;
         this.mChannel = channel;
         this.mActivity = activity;
         this.mPeerListListener = peerListListener;
-
+        this.mConnectionInfoListener = connectionInfoListener;
     }
 
     @Override
@@ -53,7 +57,15 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             }
             Log.d(TAG, "P2P peers changed");
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
-            // Respond to new connection or disconnections
+            if(mManager == null) {
+                Log.d(TAG, "Received a connection change but mManager is null.");
+            }
+
+            NetworkInfo networkInfo = (NetworkInfo) intent
+                    .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+            if(networkInfo.isConnected()) {
+                mManager.requestConnectionInfo(mChannel, mConnectionInfoListener);
+            }
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
             // Respond to this device's wifi state changing
         }
